@@ -11,6 +11,10 @@ import one.digitalinnovation.gof.model.Endereco;
 import one.digitalinnovation.gof.model.EnderecoRepository;
 import one.digitalinnovation.gof.service.ClienteService;
 import one.digitalinnovation.gof.service.ViaCepService;
+import one.digitalinnovation.gof.model.Idade;
+import one.digitalinnovation.gof.model.IdadeRepository;
+import one.digitalinnovation.gof.model.Interesses;
+import one.digitalinnovation.gof.model.InteressesRepository;
 
 /**
  * Implementação da <b>Strategy</b> {@link ClienteService}, a qual pode ser
@@ -29,6 +33,10 @@ public class ClienteServiceImpl implements ClienteService {
 	private EnderecoRepository enderecoRepository;
 	@Autowired
 	private ViaCepService viaCepService;
+	@Autowired
+	private IdadeRepository idadeRepository;
+	@Autowired
+	private InteressesRepository interessesRepository;
 	
 	// Strategy: Implementar os métodos definidos na interface.
 	// Facade: Abstrair integrações com subsistemas, provendo uma interface simples.
@@ -48,7 +56,7 @@ public class ClienteServiceImpl implements ClienteService {
 
 	@Override
 	public void inserir(Cliente cliente) {
-		salvarClienteComCep(cliente);
+		salvarClienteCompleto(cliente);
 	}
 
 	@Override
@@ -56,7 +64,7 @@ public class ClienteServiceImpl implements ClienteService {
 		// Buscar Cliente por ID, caso exista:
 		Optional<Cliente> clienteBd = clienteRepository.findById(id);
 		if (clienteBd.isPresent()) {
-			salvarClienteComCep(cliente);
+			salvarClienteCompleto(cliente);
 		}
 	}
 
@@ -66,7 +74,7 @@ public class ClienteServiceImpl implements ClienteService {
 		clienteRepository.deleteById(id);
 	}
 
-	private void salvarClienteComCep(Cliente cliente) {
+	private void salvarClienteCompleto(Cliente cliente) {
 		// Verificar se o Endereco do Cliente já existe (pelo CEP).
 		String cep = cliente.getEndereco().getCep();
 		Endereco endereco = enderecoRepository.findById(cep).orElseGet(() -> {
@@ -76,8 +84,23 @@ public class ClienteServiceImpl implements ClienteService {
 			return novoEndereco;
 		});
 		cliente.setEndereco(endereco);
-		// Inserir Cliente, vinculando o Endereco (novo ou existente).
-		clienteRepository.save(cliente);
-	}
+		Idade idade = idadeRepository.findByValue(cliente.getIdade());
+		if (idade == null) {
+			idade = new Idade(cliente.getIdade());
+			idadeRepository.save(idade);
+		}
+		// TODO: Implement the Interesses
+		Optional<Interesses> interesses = interessesRepository.findById(cliente.getInteresses());
+		if (interesses.isPresent()) {
+    		Interesses interesse = interesses.get();
+		} else {
+    		Interesses interesse = new Interesses();
+    		interesse.setInteresses(cliente.getInteresses());
+    		interessesRepository.save(interesse);
+		}
 
+		  
+		cliente.setEndereco(endereco);
+
+}
 }
